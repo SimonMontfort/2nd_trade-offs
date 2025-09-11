@@ -34,7 +34,7 @@ gc <- readRDS("Data/raw_data_list_04082025_prios.rds")
 gc <- gc[[1]]
 
 dat <- read_csv("Data/EDGE_2025_September 9, 2025_10.44.csv") %>% as_tibble()
-dat <- dat %>% filter(ResponseId %in% gc$ResponseId)
+# dat <- dat %>% filter(ResponseId %in% gc$ResponseId)
 
 ################################################################################
 # check data setup
@@ -127,9 +127,13 @@ dat <- dat %>%
       levels = c("positive_control", "mixed_control", "negative_control", "positive_treatment", "mixed_treatment", "negative_treatment")
     )
   )
-
-# Check frequencies
 table(dat$treatment_positive_bioemi_and_landemi)
+
+# treatment intensity direction (land use vs. emissions + biodiversity vs emissions)
+dat <- dat %>% 
+  mutate(treatment_direction_intensity_bioemi = e_tradeoff_biodiv*(-1),
+         treatment_direction_intensity_landemi = e_tradeoff_emiland*(-1))
+
 
 # ----      belief confidence       ---- #
 # helper function to reverse confidence scores
@@ -211,7 +215,8 @@ dat <- dat %>%
          urban_rural = factor(urban_rural, 
                               levels = c("City with more than 50,000 inhabitants", "City with less than 50,000 inhabitants", 
                                          "Agglomeration or suburb of a city", "Village, farm or house in the countryside")),
-         urban_rural_numeric = as.numeric(urban_rural))
+         urban_rural_numeric = as.numeric(urban_rural),
+         urban_rural_binary = ifelse(urban_rural %in% c("City with more than 50,000 inhabitants", "City with less than 50,000 inhabitants"), "urban", "rural"))
 
 # Income: higher value = higher income
 dat <- dat %>%
@@ -234,12 +239,18 @@ dat <- dat %>%
 dat <- dat %>%
   mutate(coping_on_income = ifelse(Z16 == "Yes", "Yes", "No"))
 
-
-
 # Quick checks
 unique(dat$edu_rec)
 unique(dat$urbru_rec)
 unique(dat$income)
+
+
+################################################################################
+# issue salience
+################################################################################
+
+dat <- dat %>% 
+  mutate(climate_salience = ifelse(is.na(A1_climchange), "Yes", "No"))
 
 ################################################################################
 # speeding & attention checks
@@ -268,9 +279,9 @@ dat <- dat %>%
   mutate(attention_landemi_yes = 
            (att_check_landemi == "More people found CO2-emissions  more important than I tought." 
            & e_tradeoff_emiland <= 1) | is.na(att_check_landemi)) %>% 
-  mutate(attention_check = attention_bioemy_yes & attention_landemi_yes)
+  mutate(attention_check_yes = attention_bioemy_yes & attention_landemi_yes)
 
-table(dat$attention_check, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
+table(dat$attention_check_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
 table(dat$attention_landemi_yes, useNA = "always")
 
 table(dat$attention_bioemy_yes, dat$attention_landemi_yes, useNA = "always")
@@ -318,7 +329,7 @@ vars_of_interest <- c(
   "post_bioemi", "post_landemi",
   "treatment_group", 
   "treatment_positive_bioemi", "treatment_positive_landemi",
-  # "treatment_bioemi", "treatment_landemi",
+  "treatment_direction_intensity_bioemi", "treatment_direction_intensity_landemi",
   "treatment_positive_bioemi_and_landemi",
   "confidence", "coping_on_income",
   # "gap_prior_treatement_bioemi", "gap_prior_treatement_landemi",
@@ -326,9 +337,10 @@ vars_of_interest <- c(
   # "learning_rate_bioemi", "learning_rate_landemi",
   
   "acceptance_alpinePV", "acceptance_wind", "acceptance_newnucs", "acceptance_prolongnucs",
-  "trust_in_sci", "left_right", "gender_binary", "education_group", "education_numeric", "urban_rural", "urban_rural_numeric", "income", "age",
+  "trust_in_sci", "left_right", "gender_binary", "education_group", "education_numeric", "urban_rural", "urban_rural_numeric", "urban_rural_binary", "income", "age",
+  "climate_salience",
   "speeder", "speeder_treatment_bioemi", "speeder_treatment_landemi", 
-  "attention_bioemy_yes", "attention_landemi_yes", "attention_check"
+  "attention_bioemy_yes", "attention_landemi_yes", "attention_check_yes"
 )
 
 saveRDS(vars_of_interest, file = "data/vars_of_interest.RDS")
