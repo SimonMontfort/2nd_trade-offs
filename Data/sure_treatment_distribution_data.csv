@@ -1,0 +1,10 @@
+bio_emi_value,count_bio_emi,freq_bio_emi,cum_freq_bio_emi,explanations_bio_emi,emi_lan_value,count_emi_lan,freq_emi_lan,cum_freq_emi_lan,explanations_emi_lan
+-4,54,2.869287991,2.869287991,bio_emi in SURE states that 4 means much more importance of low emissions as compared to negative values that mean more importance of higher biodiversity,-4,31,1.629006831,1.629006831,emi_lan in SURE states that 4 means much more importance of low emissions as compared to negative values that mean more importance of higher land-use reduction
+-3,91,4.835281615,7.704569607,,-3,53,2.785076195,4.414083027,
+-2,158,8.395324123,16.09989373,,-2,113,5.937992643,10.35207567,
+-1,329,17.48140276,33.58129649,,-1,232,12.19127693,22.5433526,
+0,491,26.08926674,59.67056323,,0,285,14.97635313,37.51970573,
+1,424,22.52922423,82.19978746,,1,545,28.63899107,66.15869679,
+2,209,11.10520723,93.30499469,,2,397,20.86179716,87.02049396,
+3,79,4.197662062,97.50265675,,3,168,8.828166054,95.84866001,
+4,47,2.497343252,100,,4,79,4.151339989,100,

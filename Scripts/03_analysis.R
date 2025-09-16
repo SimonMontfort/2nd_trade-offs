@@ -31,11 +31,14 @@ library(ggeffects)
 library(texreg)
 library(broom)
 library(dplyr)
+library(emmeans)
 
 setwd("/Users/simon/Documents/repo/2nd_trade-offs")
 
 # dat_clean <- read.csv("data/dat_clean.csv")
 dat_clean <- readRDS("data/dat_clean.RDS")
+
+sure_treatment <- readxl::read_xlsx("Data/sure_treatment_distribution_data.xlsx")
 
 ################################################################################
 # suff used throughout, e.g. plot theme
@@ -96,20 +99,20 @@ coef_labels <- c(
   # trust in science interactions
   "treatment_positive_bioemi_and_landeminegative_control:trust_in_sci" = "\\shortstack{Control: others support\\\\emission reductions\\\\more than expected\\\\$\\times$Trust in science}",
   "treatment_positive_bioemi_and_landemipositive_control:trust_in_sci" = "\\shortstack{Control: others support\\\\emission reductions\\\\less than expected\\\\$\\times$Trust in science}",
-  "treatment_positive_bioemi_and_landemimixed_control:trust_in_sci" = "Control: mixed",
+  "treatment_positive_bioemi_and_landemimixed_control:trust_in_sci" = "\\shortstack{Control: mixed$\\times$Trust in science}",
   
   "treatment_positive_bioemi_and_landeminegative_treatment:trust_in_sci" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\less than expected\\\\$\\times$Trust in science}",
   "treatment_positive_bioemi_and_landemipositive_treatment:trust_in_sci" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\more than expected\\\\$\\times$Trust in science}",
-  "treatment_positive_bioemi_and_landemimixed_treatment:trust_in_sci" = "Treatment: mixed",
+  "treatment_positive_bioemi_and_landemimixed_treatment:trust_in_sci" = "\\shortstack{Treatment: mixed$\\times$Trust in science}",
   
   # left-right interactions
   "treatment_positive_bioemi_and_landeminegative_control:left_right" = "\\shortstack{Control: others support\\\\emission reductions\\\\more than expected\\\\$\\times$Left–right ideology}",
   "treatment_positive_bioemi_and_landemipositive_control:left_right" = "\\shortstack{Control: others support\\\\emission reductions\\\\less than expected\\\\$\\times$Left–right ideology}",
-  "treatment_positive_bioemi_and_landemimixed_control:left_right" = "Control: mixed",
+  "treatment_positive_bioemi_and_landemimixed_control:left_right" = "\\shortstack{Control: mixed$\\times$Left–right ideology}",
   
   "treatment_positive_bioemi_and_landeminegative_treatment:left_right" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\less than expected\\\\$\\times$Left–right ideology}",
   "treatment_positive_bioemi_and_landemipositive_treatment:left_right" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\more than expected\\\\$\\times$Left–right ideology}",
-  "treatment_positive_bioemi_and_landemimixed_treatment:left_right" = "Treatment: mixed"
+  "treatment_positive_bioemi_and_landemimixed_treatment:left_right" = "\\shortstack{Treatment: mixed$\\times$Left–right ideology}"
 
   
   # "treatment_positive_bioemi_and_landemiboth_negative:trust_in_sci" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\less than expected\\\\$\\times$Trust in science}",
@@ -119,6 +122,8 @@ coef_labels <- c(
   # "treatment_positive_bioemi_and_landemipositive_treatment:left_right" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\more than expected\\\\$\\times$Left–right ideology}",
   # "treatment_positive_bioemi_and_landemimixed:left_right" = "\\shortstack{Treatment: mixed\\\\$\\times$Left–right ideology}"
 )
+
+# get_coef_labels_list(models, coef_labels) get_coef_labels_list(models, coef_labels)
 
 dv_labels <- c(
   prior_bioemi          = "\\rotatebox{90}{Prior biodiversity vs. emissions}",
@@ -334,8 +339,9 @@ ggsave(fig1, file = "Plots/fig1.pdf", width = 11, height = 11)
 # II.a) social influence: treatment-control group comparison
 ################################################################################
 
-lm_influence_bioemi_main <- lm(post_bioemi ~ treatment_group, data = dat_clean)
-lm_influence_landemi_main <- lm(post_landemi ~ treatment_group, data = dat_clean)
+
+lm_influence_bioemi_main <- lm(post_bioemi ~ treatment_group, data = dat_clean %>% filter(attention_bioemi_yes))
+lm_influence_landemi_main <- lm(post_landemi ~ treatment_group, data = dat_clean %>% filter(attention_landemi_yes))
 
 models <- list(lm_influence_bioemi_main, lm_influence_landemi_main)
 texreg::texreg(
@@ -367,121 +373,238 @@ df_forest <- purrr::map_dfr(mods, ~ {
 
 # Forest plot
 fig2a <- ggplot(df_forest, aes(x = term_label, y = estimate, group = Model, col = rev(term_label), shape = term_label)) +
-  geom_point(size = 3, position = position_dodge(width = 0.6), col = "black") +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), col = "black", 
+  geom_point(size = 3, position = position_dodge(width = 0.6)) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), 
                 width = 0.2, position = position_dodge(width = 0.6)) +
-  facet_wrap(~Model, ncol = 2) +
-  ylim(-.7,1.4) +
-  labs(x = "2nd order trade-off belief treatment",
-       y = "Own trade-off belief",
+  facet_wrap(~Model, ncol = 1) +
+  # ylim(-.7,1.4) +
+  labs(x = "",
+       y = "",
        title = "Social influence:\ntreatment-control group comparison") +
+  scale_y_continuous(position = "right") + 
+  scale_color_npg() +
   theme_SM() +
-  theme(legend.position = "none",
-    axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(legend.position = "none")
 
 fig2a
 
-# # #########
-# # #
-# # library(splines)
-# # 
-# # lm_influence_bioemi_8 <- lm(post_bioemi ~ treatment_direction_intensity_bioemi*treatment_group*trust_in_sci + treatment_direction_intensity_landemi* treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
-# # summary(lm_influence_bioemi_8)
-# # 
-# # lm_influence_bioemi_8 <- lm(post_bioemi ~ treatment_direction_intensity_bioemi*treatment_group + treatment_direction_intensity_landemi* treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
-# # summary(lm_influence_bioemi_8)
-# # 
-# # lm_influence_bioemi_8 <- lm(post_bioemi ~ ns(treatment_direction_intensity_bioemi, df = 2)* treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
-# # summary(lm_influence_bioemi_8)
-# # 
-# # lm_influence_bioemi_8 <- lm(post_bioemi ~ poly(treatment_direction_intensity_bioemi, 2)* treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
-# # summary(lm_influence_bioemi_8)
-# # 
-# # lm_influence_bioemi_8 <- lm(post_bioemi ~ treatment_direction_intensity_bioemi*treatment_group + I(treatment_direction_intensity_bioemi^2)* treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
-# # summary(lm_influence_bioemi_8)
-# 
-# lm_influence_landemi_8 <- lm(post_landemi ~ treatment_direction_intensity_landemi*treatment_group*climate_salience + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
-# summary(lm_influence_landemi_8)
-# 
-# plot_model(lm_influence_landemi_8, type = "emm",
-#            terms = c("treatment_group", "climate_salience"))
-# # 
-# # dat_clean$bioemi_sq <- dat_clean$treatment_direction_intensity_bioemi^2
-# # dat_clean$landemi_sq <- dat_clean$treatment_direction_intensity_landemi^2
-# # 
-# # lm_influence_landemi_8 <- lm(post_landemi ~ 
-# #                                treatment_direction_intensity_bioemi*treatment_group +
-# #                                # bioemi_sq*treatment_group +
-# #                                treatment_direction_intensity_landemi*treatment_group +
-# #                                # landemi_sq*treatment_group +
-# #                                trust_in_sci + gender_binary + left_right +
-# #                                education_numeric + urban_rural_numeric +
-# #                                coping_on_income + confidence,
-# #                              data = dat_clean)
-# # summary(lm_influence_landemi_8)
-# # 
-# # Sequence for bioemi
-# bioemi_seq <- seq(min(dat_clean$treatment_direction_intensity_bioemi, na.rm = T),
-#                   max(dat_clean$treatment_direction_intensity_bioemi, na.rm = T),
-#                   length.out = 100)
-# 
-# # Prediction dataframe
-# pred_data <- data.frame(
-#   treatment_direction_intensity_bioemi = bioemi_seq,
-#   # bioemi_sq = bioemi_seq^2,
-#   # landemi_sq = mean(dat_clean$landemi_sq),  # keep other predictors constant
-#   treatment_direction_intensity_landemi = mean(dat_clean$treatment_direction_intensity_landemi, na.rm = T),
-#   treatment_group = levels(dat_clean$treatment_group),              # choose a group to visualize
-#   trust_in_sci = mean(dat_clean$trust_in_sci, na.rm = TRUE),
-#   gender_binary = "male",                   # or factor level
-#   left_right = mean(dat_clean$left_right, na.rm = TRUE),
-#   education_numeric = mean(dat_clean$education_numeric, na.rm = TRUE),
-#   urban_rural_numeric = mean(dat_clean$urban_rural_numeric, na.rm = TRUE),
-#   coping_on_income = "Yes",
-#   confidence = mean(dat_clean$confidence, na.rm = TRUE)
-# )
-# 
-# predictions <- predict(
-#   lm_influence_landemi_8,
-#   newdata = pred_data,
-#   interval = "confidence",   # gives "fit", "lwr", "upr"
-#   level = 0.95               # 95% CI
-# )
-# 
-# # Add to pred_data
-# pred_data$fit <- predictions[, "fit"]
-# pred_data$lwr <- predictions[, "lwr"]
-# pred_data$upr <- predictions[, "upr"]
-# 
-# 
-# ggplot(pred_data, aes(x = treatment_direction_intensity_bioemi, y = fit, color = treatment_group, fill = treatment_group)) +
-#   geom_line(size = 1.2) +
-#   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2, color = NA) +  # shaded CI
-#   labs(x = "Bioemi Intensity", y = "Predicted Post Landemi") +
-#   theme_minimal()
-# 
-# 
-# 
-# plot_model(lm_influence_landemi_8, type = "int",
-#            terms = c("bioemi_sq", "treatment_group"))
-# plot_model(lm_influence_landemi_8, type = "int",
-#            terms = c("landemi_sq", "treatment_group"))
 
+
+################################################################################
+# II.b) social influence: (true value - prior 2nd order belief) x treatment group
+################################################################################
+
+lm_influence_bioemi_8 <- lm(post_bioemi ~ 
+                              gap_to_true_value_bioemi*treatment_group + 
+                              gap_to_true_value_landemi*treatment_group + 
+                              trust_in_sci + gender_binary + left_right + education_numeric + 
+                              urban_rural_numeric + coping_on_income + confidence, 
+                            data = dat_clean %>% filter(attention_check_yes))
+
+summary(lm_influence_bioemi_8)
+
+lm_influence_landemi_8 <- lm(post_landemi ~ 
+                               gap_to_true_value_bioemi*treatment_group + 
+                               gap_to_true_value_landemi*treatment_group + 
+                               trust_in_sci + gender_binary + left_right + education_numeric + 
+                               urban_rural_numeric + coping_on_income + confidence, 
+                             data = dat_clean %>% filter(attention_check_yes))
+
+
+summary(lm_influence_landemi_8)
+
+sjPlot::plot_model(lm_influence_landemi_8, terms = c("gap_to_true_value_bioemi", "treatment_group"), type = "emm")
+sjPlot::plot_model(lm_influence_landemi_8, terms = c("gap_to_true_value_landemi", "treatment_group"), type = "emm")
+
+
+lm_influence_bioemi_8 <- lm(post_bioemi ~ 
+                              gap_to_true_value_bioemi*treatment_group + 
+                              gap_to_true_value_landemi*treatment_group + 
+                              trust_in_sci + gender_binary + left_right + education_numeric + 
+                              urban_rural_numeric + coping_on_income + confidence, 
+                            data = dat_clean %>% filter(attention_check_yes))
+
+summary(lm_influence_bioemi_8)
+
+lm_influence_landemi_8 <- lm(post_landemi ~ 
+                               gap_to_true_value_bioemi*treatment_group + 
+                               gap_to_true_value_landemi*treatment_group + 
+                               trust_in_sci + gender_binary + left_right + education_numeric + 
+                               urban_rural_numeric + coping_on_income + confidence, 
+                             data = dat_clean %>% filter(attention_check_yes))
+
+
+summary(lm_influence_landemi_8)
+# 
+sjPlot::plot_model(lm_influence_landemi_8,
+                   terms = c("gap_to_true_value_bioemi", "treatment_group"), type = "emm")
+# sjPlot::plot_model(lm_influence_landemi_8, terms = c("gap_to_true_value_landemi", "treatment_group"), type = "emm")
+
+
+# Main-effect models
+mods <- list(
+  "Biodiversity conservation\nvs. emission reduction" = lm_influence_bioemi_8,
+  "Land use\nvs. emission reduction" = lm_influence_landemi_8
+)
+
+library(emmeans)
+library(broom)
+library(purrr)
+library(dplyr)
+
+
+# Function to extract both means and slopes
+extract_emm <- function(model, gap_var) {
+  form <- as.formula(paste("~ treatment_group |", gap_var))
+  
+  # Predicted means at a range of gap values
+  em_gap <- emmeans(model,
+                    form,
+                    at = setNames(list(seq(-4, 4, 1)), gap_var)) %>%
+    tidy(conf.int = TRUE) %>%
+    rename(gap_value = !!sym(gap_var)) %>%  # standardize column name
+    mutate(type = "Predicted means",
+           gap_var = gap_var)
+  
+  # Simple slopes of gap within treatment
+  tr_gap <- emtrends(model, ~ treatment_group, var = gap_var) %>%
+    tidy(conf.int = TRUE) %>%
+    mutate(type = "Simple slopes",
+           gap_var = gap_var)
+  
+  bind_rows(em_gap, tr_gap)
+}
+
+# Both models
+mods <- list(
+  "Perception gap:\nBiodiversity conservation\nvs. emission reduction" = lm_influence_bioemi_8,
+  "Perception gap:\nLand use\nvs. emission reduction" = lm_influence_landemi_8
+)
+
+# Both gap variables
+gap_vars <- c("gap_to_true_value_bioemi", "gap_to_true_value_landemi")
+
+# Apply: all gaps × all models
+df_forest <- purrr::map_dfr(mods, function(m) {
+  map_dfr(gap_vars, ~ extract_emm(m, .x))
+}, .id = "Model") %>% 
+  mutate(gap_var = ifelse(gap_var == "gap_to_true_value_bioemi",
+                          "Own belief:\nBiodiversity conservation\nvs. emission reduction",
+                          "Own belief:\nLand use\nvs. emission reduction"))
+
+# Check coverage
+table(df_forest$Model, df_forest$gap_var)
+
+p_vals <- purrr::map_dfr(mods, tidy, .id = "Model") %>% 
+  filter(grepl(":", term)) %>% 
+  mutate(gap_var = ifelse(grepl("bioemi", term),
+                          "Own belief:\nBiodiversity conservation\nvs. emission reduction",
+                          "Own belief:\nLand use\nvs. emission reduction")) %>%
+  group_by(Model, gap_var) %>%
+  summarise(p.value = min(p.value), .groups = "drop") %>%
+  mutate(label = paste0("P-value (interaction): ", signif(p.value, 3)))
+
+
+# Example: label above the top of blue treatment line
+label_arrow_df <- df_forest %>%
+  filter(type == "Predicted means", treatment_group == "treatment") %>%  
+  group_by(Model, gap_var) %>%
+  arrange(gap_value) %>% 
+  slice(4) %>% 
+  summarise(
+    x_arrow = gap_value,      # where arrow points on x-axis
+    y_arrow = estimate,       # point to highest value of blue line
+    .groups = "drop"
+  ) %>% 
+  left_join(p_vals, by = c("Model", "gap_var"))
+
+# corner_labels <- data.frame(
+#   x = c(4, -4, -4, 4),     # push into corners of plot range
+#   y = c(3.2, 3.2, -2.3, -2.3),
+#   hjust = c(1, 0, 0, 1),           # align text nicely inside plot
+#   vjust = c(1, 1, 0, 0),
+#   label = c(
+#     "Respondent underestimated others' preference\nfor emission reductions,\nand self prefers emission reductions",
+#     "Respondent overestimated others' preference\nfor emission reductions,\nand self prefers emission reductions",
+#     "Respondent overestimated others' preference\nfor emission reductions,\nand self prefers biodiversity/land",
+#     "Respondent underestimated others' preference\nfor emission reductions,\nand self prefers biodiversity/land"
+#   )
+# )
+
+
+# Line plot with ribbons for CIs
+fig2b <- ggplot(df_forest %>% filter(type != "Simple slopes") , 
+       aes(x = as.numeric(gap_value), 
+                     y = estimate,
+                     color = treatment_group,
+                     fill = treatment_group,
+                     group = treatment_group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, color = NA) +
+  geom_hline(yintercept = 0, lty = 2, col = "grey") +
+  geom_vline(xintercept = 0, lty = 2, col = "grey") +
+  # Curved arrow pointing to the line
+  # Label with rounded edges + arrow
+  geom_label_repel(data = label_arrow_df,
+                   aes(x = x_arrow, y = y_arrow, label = label),   # adjust x/y as needed
+                   inherit.aes = FALSE,
+                   label.r = unit(0.2, "lines"),       # rounded corners
+                   label.size = 0.3,                   # box border thickness
+                   arrow = arrow(length = unit(0.02, "npc")),  # arrow on segment
+                   segment.curvature = 0.3,            # curve the arrow
+                   segment.angle = 20,                 # tweak curvature
+                   segment.ncp = 3,                    # smoothness
+                   nudge_x = 1, 
+                   nudge_y = 1,
+                   segment.color = "black",
+                   size = 3) +
+
+  # # Quadrant labels
+  # geom_text(data = corner_labels,
+  #           aes(x = x, y = y, label = label, hjust = hjust, vjust = vjust),
+  #           inherit.aes = FALSE,
+  #           size = 2, color = "black") +
+  scale_color_npg() +
+  scale_fill_npg() +
+  ylim(-2.5,3.5) +
+  facet_grid(gap_var~Model, scales = "free_y", switch = "y") +
+  labs(x = "Perception gap\n(True value of what others believe - expectation prior to the experiment)",
+       y = "",
+       color = "Experimental group",
+       fill = "Experimental group",
+       title = "Social influence:\nDepending on the perception gap",) + 
+  theme(strip.text.y.left = element_text(angle = 0),
+        strip.placement = "outside",
+        legend.position = c(.7,.4),
+        legend.text = element_text(size = 7),
+        legend.key.size = unit(.4, "cm"),
+        legend.margin = margin(rep(2, 4)),
+        legend.title = element_blank(),
+        legend.justification = c(1, 0),
+        legend.background = element_rect(fill="white", 
+                                         size=.3, linetype="solid", 
+                                         colour ="grey"))
+
+fig2 <- fig2a + fig2b + plot_layout(widths = c(1, 3))
+
+# fig2 <- ggarrange(fig2a, fig2b, labels = "auto", align = "hv", widths = c(1,3))
+ggsave(fig2,  file = "Plots/fig2.pdf", width = 10, height = 8)
 
 ################################################################################
 # II.b) social influence: treatment direction
 ################################################################################
 
+# dat_clean <- dat_clean %>% filter(attention_check_yes)
 # dat_clean <- dat_clean %>% filter(!speeder_treatment_bioemi & !speeder_treatment_landemi)
 # Biodiversity vs Emissions
-lm_influence_bioemi_1 <- lm(post_bioemi ~ treatment_positive_bioemi_and_landemi, data = dat_clean)
-lm_influence_bioemi_2 <- lm(post_bioemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci, data = dat_clean)
-lm_influence_bioemi_3 <- lm(post_bioemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary, data = dat_clean)
-lm_influence_bioemi_4 <- lm(post_bioemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right, data = dat_clean)
-lm_influence_bioemi_5 <- lm(post_bioemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric, data = dat_clean)
-lm_influence_bioemi_6 <- lm(post_bioemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric, data = dat_clean)
-lm_influence_bioemi_7 <- lm(post_bioemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income, data = dat_clean)
-lm_influence_bioemi_8 <- lm(post_bioemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
+lm_influence_bioemi_1 <- lm(post_bioemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group, data = dat_clean)
+lm_influence_bioemi_2 <- lm(post_bioemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci, data = dat_clean)
+lm_influence_bioemi_3 <- lm(post_bioemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary, data = dat_clean)
+lm_influence_bioemi_4 <- lm(post_bioemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary + left_right, data = dat_clean)
+lm_influence_bioemi_5 <- lm(post_bioemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary + left_right + education_numeric, data = dat_clean)
+lm_influence_bioemi_6 <- lm(post_bioemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric, data = dat_clean)
+lm_influence_bioemi_7 <- lm(post_bioemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income, data = dat_clean)
+lm_influence_bioemi_8 <- lm(post_bioemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
 
 models <- list(lm_influence_bioemi_1, lm_influence_bioemi_2, lm_influence_bioemi_3, lm_influence_bioemi_4,
                lm_influence_bioemi_5, lm_influence_bioemi_6, lm_influence_bioemi_7, lm_influence_bioemi_8)
@@ -499,14 +622,14 @@ texreg::texreg(
 )
 
 ## Stepwise build-up for Learning LandEmi ##
-lm_influence_landemi_1 <- lm(post_landemi ~ treatment_positive_bioemi_and_landemi, data = dat_clean)
-lm_influence_landemi_2 <- lm(post_landemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci, data = dat_clean)
-lm_influence_landemi_3 <- lm(post_landemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary, data = dat_clean)
-lm_influence_landemi_4 <- lm(post_landemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right, data = dat_clean)
-lm_influence_landemi_5 <- lm(post_landemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric, data = dat_clean)
-lm_influence_landemi_6 <- lm(post_landemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric, data = dat_clean)
-lm_influence_landemi_7 <- lm(post_landemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income, data = dat_clean)
-lm_influence_landemi_8 <- lm(post_landemi ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
+lm_influence_landemi_1 <- lm(post_landemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group, data = dat_clean)
+lm_influence_landemi_2 <- lm(post_landemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci, data = dat_clean)
+lm_influence_landemi_3 <- lm(post_landemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary, data = dat_clean)
+lm_influence_landemi_4 <- lm(post_landemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary + left_right, data = dat_clean)
+lm_influence_landemi_5 <- lm(post_landemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary + left_right + education_numeric, data = dat_clean)
+lm_influence_landemi_6 <- lm(post_landemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric, data = dat_clean)
+lm_influence_landemi_7 <- lm(post_landemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income, data = dat_clean)
+lm_influence_landemi_8 <- lm(post_landemi ~ gap_to_true_value_bioemi*treatment_group + gap_to_true_value_landemi*treatment_group + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
 
 models <- list(lm_influence_landemi_1, lm_influence_landemi_2, lm_influence_landemi_3, lm_influence_landemi_4,
                lm_influence_landemi_5, lm_influence_landemi_6, lm_influence_landemi_7, lm_influence_landemi_8)
@@ -571,7 +694,7 @@ fig2b <- ggplot(df_forest, aes(x = term_label, y = estimate, group = term_label,
   labs(x = "2nd order trade-off belief treatment",
        y = "Own trade-off belief",
        title = "Social influence:\ntreatment direction") +
-  ylim(-.7,1.4) +
+  # ylim(-.7,1.4) +
   theme_SM() +
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 45, hjust = 1))
@@ -644,7 +767,7 @@ fig3a
 ################################################################################
 
 # dat_clean <- dat_clean %>% filter(speeder_treatment_bioemi == F & speeder_treatment_bioemi == F)
-# dat_clean <- dat_clean %>% filter(attention_check)
+# dat_clean <- dat_clean %>% filter(att_check_bioemi_pass != "fail" & att_check_emiland_pass != "fail")
 lm_alpinePV_1 <- lm(acceptance_alpinePV ~ treatment_positive_bioemi_and_landemi, data = dat_clean)
 lm_alpinePV_2 <- lm(acceptance_alpinePV ~ treatment_positive_bioemi_and_landemi + trust_in_sci, data = dat_clean)
 lm_alpinePV_3 <- lm(acceptance_alpinePV ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary, data = dat_clean)
@@ -661,7 +784,7 @@ lm_wind_4 <- lm(acceptance_wind ~ treatment_positive_bioemi_and_landemi + trust_
 lm_wind_5 <- lm(acceptance_wind ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric, data = dat_clean)
 lm_wind_6 <- lm(acceptance_wind ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric, data = dat_clean)
 lm_wind_7 <- lm(acceptance_wind ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income, data = dat_clean)
-lm_wind_8 <- lm(acceptance_wind ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence + age, data = dat_clean)
+lm_wind_8 <- lm(acceptance_wind ~ treatment_positive_bioemi_and_landemi + trust_in_sci + gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence, data = dat_clean)
 
 lm_newnucs_1 <- lm(acceptance_newnucs ~ treatment_positive_bioemi_and_landemi, data = dat_clean)
 lm_newnucs_2 <- lm(acceptance_newnucs ~ treatment_positive_bioemi_and_landemi + trust_in_sci, data = dat_clean)
@@ -957,7 +1080,6 @@ models <-   list(lm_newnucs_1, lm_newnucs_2, lm_newnucs_3, lm_newnucs_4,
                  lm_newnucs_5, lm_newnucs_6, lm_newnucs_7, lm_newnucs_8)
 texreg::texreg(
   models,
-  custom.model.names = get_dv_labels(models, dv_labels),
   custom.coef.names = get_coef_labels_list(models, coef_labels),  
   custom.note = "Standard errors in parentheses. $^{***}p<0.001$; $^{**}p<0.01$; $^{*}p<0.05$",   float.pos = "h",
   label   = "table:acceptance_new_nucs_speeders_excluded",
@@ -992,11 +1114,11 @@ lm_alpinePV_int2 <- lm(acceptance_alpinePV ~ treatment_positive_bioemi_and_lande
 
 # --- Wind ---
 lm_wind_int1 <- lm(acceptance_wind ~ treatment_positive_bioemi_and_landemi * trust_in_sci +
-                     gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence + age,
+                     gender_binary + left_right + education_numeric + urban_rural_numeric + coping_on_income + confidence,
                    data = dat_clean)
 
 lm_wind_int2 <- lm(acceptance_wind ~ treatment_positive_bioemi_and_landemi * left_right +
-                     trust_in_sci + gender_binary + education_numeric + urban_rural_numeric + coping_on_income + confidence + age,
+                     trust_in_sci + gender_binary + education_numeric + urban_rural_numeric + coping_on_income + confidence,
                    data = dat_clean)
 
 # --- New nuclear ---

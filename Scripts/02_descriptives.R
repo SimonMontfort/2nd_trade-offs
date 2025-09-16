@@ -72,6 +72,97 @@ theme_SM <- function(){
 
 
 ################################################################################
+# treatment distribution comparison
+################################################################################
+
+sure_treatment <- sure_treatment %>% 
+  select(treatment_bioemi_2nd_value = bio_emi_value, treatment_bioemi_2nd_n = count_bio_emi, 
+         treatment_landemi_2nd_value = emi_lan_value, treatment_landemi_2nd_n = count_emi_lan)
+
+pre_and_treat_dist <- bind_cols(sure_treatment, 
+                                dat_clean %>% 
+                                  select(prior_bioemi_2nd) %>% 
+                                  group_by(prior_bioemi_2nd) %>% 
+                                  count(name = "prior_bioemi_2nd_n") %>% 
+                                  ungroup() %>% 
+                                  filter(!is.na(prior_bioemi_2nd)), # -----> check!!!
+                                dat_clean %>% 
+                                  select(prior_landemi_2nd) %>% 
+                                  group_by(prior_landemi_2nd) %>% 
+                                  count(name = "prior_landemi_2nd_n") %>% 
+                                  ungroup()  %>% 
+                                  filter(!is.na(prior_landemi_2nd))
+)
+
+dat_clean
+
+library(ggplot2)
+library(ggsci)      # for scale_fill_npg
+library(scales)     # for percent_format
+
+p_desc_over_under <- pre_and_treat_dist %>% 
+  select(slider_value = treatment_bioemi_2nd_value, 
+         treatment_bioemi_2nd_n, 
+         treatment_landemi_2nd_n, 
+         prior_bioemi_2nd_n, 
+         prior_landemi_2nd_n) %>% 
+  pivot_longer(
+    c("treatment_bioemi_2nd_n", 
+      "treatment_landemi_2nd_n", 
+      "prior_bioemi_2nd_n", 
+      "prior_landemi_2nd_n")
+  ) %>% 
+  mutate(
+    treatment_group = ifelse(grepl("treatment", name), 
+                             "True population distribution\n(treatment)", 
+                             "Beliefs about others' beliefs\n(prior 2nd order belief)"),
+    outcome = ifelse(grepl("bioemi", name), 
+                     "Biodiversity conservation\nvs. emission reduction", 
+                     "Land use\nvs. emission reduction")) %>% 
+  mutate(
+    truth = ifelse(outcome == "Land use\nvs. emission reduction", 1, 0),
+    est_type = case_when(
+      slider_value > truth ~ "Value emission reductions\nmore than they think the\npopulation does",
+      slider_value <= truth ~ "Value emission reductions\nless or equal than they think the\npopulation does",
+      # slider_value == truth ~ "Correct"
+    ),
+    est_type = factor(
+      est_type,
+      levels = c(
+        "Value emission reductions\nmore than they think the\npopulation does",
+        "Value emission reductions\nless or equal than they think the\npopulation does"
+      )
+    )
+  ) %>% 
+  group_by(outcome, treatment_group, est_type) %>% 
+  summarise(total = sum(value), .groups = "drop") %>% 
+  group_by(outcome, treatment_group) %>%                              # normalize *within each facet*
+  mutate(total = total / sum(total)) %>% 
+  pivot_wider(values_from = "total", names_from = "treatment_group") %>% 
+  mutate(difference = `Beliefs about others' beliefs\n(prior 2nd order belief)`- `True population distribution\n(treatment)`) %>% 
+  ggplot(aes(x = est_type, y = difference)) +
+  geom_bar(stat = "identity", 
+           position = position_dodge(width = .7), width = .6, col = "black", size = .2) +
+  geom_text(aes(label = scales::percent(difference, accuracy = 1)), 
+            position = position_dodge(width = .7), 
+            vjust = -0.3, size = 3.5) +              # labels on top
+  facet_grid(~outcome) +
+  scale_y_continuous(labels = label_number(suffix = "ppt", scale = 100), expand = expansion(mult = c(0, 0.1))) +
+  scale_fill_npg() +
+  labs(x = "", y = "Percentage points", fill = "Group") + 
+  theme_SM() +
+  theme(legend.position = c(.25,.85),
+        legend.margin = margin(rep(2, 4)),
+        legend.title = element_blank(),
+        legend.justification = c(1, 0),
+        legend.background = element_rect(fill="white", 
+                                         size=.3, linetype="solid", 
+                                         colour ="grey"),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+p_desc_over_under
+ggarrange(p_desc_over_under, file = "Plots/p_desc_over_under.pdf")
+
+################################################################################
 # plot counts and NAs
 ################################################################################
 
