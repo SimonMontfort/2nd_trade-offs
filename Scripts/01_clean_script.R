@@ -34,7 +34,7 @@ gc <- readRDS("Data/raw_data_list_04082025_prios.rds")
 gc <- gc[[1]]
 
 dat <- read_csv("Data/EDGE_2025_September 9, 2025_10.44.csv") %>% as_tibble()
-# dat <- dat %>% filter(ResponseId %in% gc$ResponseId)
+dat <- dat %>% filter(ResponseId %in% gc$ResponseId)
 
 sure_treatment <- readxl::read_xlsx("Data/sure_treatment_distribution_data.xlsx")
 
@@ -60,11 +60,14 @@ check <- dat %>%
 
 check
 
+
+median(dat$`Duration (in seconds)`)/60
+
 ################################################################################
 # experimental variables
 ################################################################################
 
-# ----  prior and posterior beliefs  ---- #
+# ----  prior, posterior beliefs, and complementarity  ---- #
 
 # pior beliefs (before starting the experiment)
 dat$prior_bioemi_2nd <- dat$imp_to_avg_Swi_1 
@@ -73,12 +76,14 @@ dat$prior_landemi_2nd <- dat$imp_to_avg_Swi_2
 dat$prior_bioemi <- dat$imp_to_you_1 
 dat$prior_landemi <- dat$imp_to_you_2 
 
+dat$complementarity_bioemi <- dat$complimentary_1
+dat$complementarity_landemi <- dat$complimentary_2
+
 # posterior beliefs (after being exposed to the treatment)
 dat <- dat %>% 
-  # as the survrey includes blocks for treatmeent and control these need to be combined
+  # as the survrey includes blocks for treatment and control these need to be combined
   mutate(post_bioemi = ifelse(dat$tradeoff_con_treat=="treat", learning_bioemi_1, learning_control_1),
          post_landemi = ifelse(dat$tradeoff_con_treat=="treat", learning_emiland_1, learning_control_2))
-
 
 # ---- treatment group and direction ---- #
 
@@ -131,15 +136,36 @@ dat <- dat %>%
   )
 table(dat$treatment_positive_bioemi_and_landemi)
 
-# treatment intensity direction (land use vs. emissions + biodiversity vs emissions)
-dat %>% 
-  mutate(treatment = 0, 
-         gap_to_true_value = treatment - prior_landemi_2nd) %>% 
-  select(prior_landemi_2nd, treatment, gap_to_true_value)
-
+# gap to true value
 dat <- dat %>% 
   mutate(gap_to_true_value_bioemi = prior_bioemi_2nd-0,
-         gap_to_true_value_landemi = prior_landemi_2nd-0)
+         gap_to_true_value_landemi = prior_landemi_2nd-1)
+
+# # treatment direction 2 <----------------------------- either replace above or cut this
+# dat <- dat %>%
+#   mutate(treatment_positive_bioemi = case_when(
+#     e_tradeoff_biodiv <(-1) & treatment_group == "control" ~ "positive_control",
+#     e_tradeoff_biodiv %in% c(-1,0,1) & treatment_group == "control" ~ "accurate_control",
+#     e_tradeoff_biodiv >1 & treatment_group == "control" ~ "negative_control",
+#     e_tradeoff_biodiv <(-1) & treatment_group == "treatment" ~ "positive_treatment",
+#     e_tradeoff_biodiv %in% c(-1,0,1) & treatment_group == "treatment" ~ "accurate_treatment",
+#     e_tradeoff_biodiv >1 & treatment_group == "treatment" ~ "negative_treatment")
+#   ) %>% 
+#   mutate(treatment_positive_landemi = case_when(
+#     e_tradeoff_emiland <0 & treatment_group == "control" ~ "positive_control",
+#     e_tradeoff_emiland %in% c(0,1,2)  & treatment_group == "control" ~ "accurate_control",
+#     e_tradeoff_emiland >2 & treatment_group == "control" ~ "negative_control",
+#     e_tradeoff_emiland <0 & treatment_group == "treatment" ~ "positive_treatment",
+#     e_tradeoff_emiland %in% c(0,1,2) & treatment_group == "treatment" ~ "accurate_treatment",
+#     e_tradeoff_emiland >2 & treatment_group == "treatment" ~ "negative_treatment")
+#   )
+# 
+# dat$treatment_positive_bioemi <- factor(dat$treatment_positive_bioemi, 
+#                                         levels = c("positive_control", "accurate_control", "positive_treatment",
+#                                                    "negative_control", "accurate_treatment", "negative_treatment"))
+# dat$treatment_positive_landemi <- factor(dat$treatment_positive_landemi, 
+#                                          levels = c("positive_control", "accurate_control", "positive_treatment",
+#                                                     "negative_control", "accurate_treatment", "negative_treatment"))
 
 
 # ----      belief confidence       ---- #
@@ -155,25 +181,6 @@ dat <- dat %>%
     confidence_emiland_num = as.numeric(reverse_confidence(confidence_emiland)),
     confidence = confidence_biodiv_num + confidence_emiland_num
   )
-
-
-# # ----        learning rate      ---- #
-# 
-# dat <- dat %>%
-#   # compute the gap between prior belief and treatment
-#   mutate(
-#     gap_prior_treatement_bioemi = 0 - prior_bioemi_2nd,
-#     gap_prior_treatement_landemi = 0 - prior_landemi_2nd,
-#     # compute learning rates
-#     learning_rate_bioemi = (post_bioemi - prior_bioemi) / gap_prior_treatement_bioemi,
-#     learning_rate_landemi = (post_landemi - prior_landemi) / gap_prior_treatement_landemi,
-#     # handle division by zero (when prior = treatment)
-#     learning_rate_bioemi = ifelse(gap_prior_treatement_bioemi == 0, NA, learning_rate_bioemi),
-#     learning_rate_landemi = ifelse(gap_prior_treatement_landemi == 0, NA, learning_rate_landemi)
-#   ) %>% 
-#   mutate(gap_prior_post_bioemi = post_bioemi - prior_bioemi, 
-#          gap_prior_post_landemi = post_landemi - post_landemi)
-
 
 # ----   dependent variables    ----#
 
@@ -260,71 +267,23 @@ dat <- dat %>%
   mutate(climate_salience = ifelse(is.na(A1_climchange), "Yes", "No"))
 
 ################################################################################
+# perceived benefit
+################################################################################
+# dat$G2_Benefis_2ndNet_
+dat <- dat %>% 
+  mutate(perceived_benefit = G2_Benefis_2ndNet_1 + G2_Benefis_2ndNet_2 + G2_Benefis_2ndNet_3 + G2_Benefis_2ndNet_5)
+
+
+################################################################################
 # speeding & attention checks
 ################################################################################
 
-# speeding
+# speeding on the entire survey
 duration <- as.numeric(dat$`Duration (in seconds)`)
 med_below40 <- summary(duration)[3]*.4
 dat$speeder <- dat$`Duration (in seconds)` < med_below40
-dat$att_check_1_emiland
-# attention ceck
-table(is.na(dat$att_check_1_bioemi), is.na(dat$att_check_2_bioemi))
-# TODO: clarify what the difference between the items att_check_1_bioemi and att_check_2_bioemi is
-dat$att_check_1_bioemi
 
-dat %>% 
-  select(prior_bioemi_2nd, 
-         # e_tradeoff_biodiv, 
-         att_check_1_bioemi, att_check_2_bioemi, 
-         prior_landemi_2nd, 
-         # e_tradeoff_emiland, 
-         att_check_1_emiland, att_check_2_emiland,
-         treatment_group) %>% 
-  filter(treatment_group == "treatment")
-
-dat <- dat %>% 
-  mutate(att_check_bioemi = case_when(is.na(att_check_1_bioemi) & is.na(att_check_2_bioemi) ~ NA,
-                                     !is.na(att_check_1_bioemi) & is.na(att_check_2_bioemi) ~ att_check_1_bioemi,
-                                     is.na(att_check_1_bioemi) & !is.na(att_check_2_bioemi) ~ att_check_2_bioemi)) %>% 
-  mutate(attention_bioemi_yes = 
-           (att_check_bioemi == "More people found  biodiversity  more important than I thought." 
-           & e_tradeoff_biodiv > 0) 
-         | (att_check_bioemi == "More people found CO2-emissions  more important than I tought."
-            & e_tradeoff_biodiv <= 0)) %>% 
-  mutate(att_check_landemi = case_when(is.na(att_check_1_emiland) & is.na(att_check_2_emiland) ~ NA,
-                                      !is.na(att_check_1_emiland) & is.na(att_check_2_emiland) ~ att_check_1_emiland,
-                                      is.na(att_check_1_emiland) & !is.na(att_check_2_emiland) ~ att_check_2_emiland)) %>% 
-  mutate(attention_landemi_yes = 
-           (att_check_landemi == "More people found  land-use  more important than I thought." 
-            & e_tradeoff_emiland > 0) 
-         | (att_check_landemi == "More people found CO2-emissions  more important than I tought."
-            & att_check_landemi <= 0)) %>%
-  # non-forced choice NAs are false
-  mutate(attention_landemi_yes = ifelse(is.na(attention_landemi_yes) & treatment_group == "treatment", FALSE, attention_landemi_yes)) %>% 
-  # control group is true
-  mutate(attention_bioemi_yes = ifelse(is.na(attention_bioemi_yes) & treatment_group == "control", TRUE, attention_bioemi_yes),
-         attention_landemi_yes = ifelse(is.na(attention_landemi_yes) & treatment_group == "control", TRUE, attention_landemi_yes)) %>% 
-  # combine the two
-  mutate(attention_check_yes = attention_bioemi_yes & attention_landemi_yes) 
-
-
-
-
-
-table(dat$attention_check_yes, dat$treatment_group)
-# 
-# table(dat$att_check_1_bioemi[dat$treatment_group == "treatment"], useNA = "always")
-# table(dat$att_check_landemi[dat$treatment_group == "treatment"], useNA = "always")
-# 
-table(dat$attention_check_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
-# table(dat$attention_bioemi_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
-# table(dat$attention_landemi_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
-# table(dat$att_check_1_bioemi, useNA = "always")
-# table(dat$att_check_1_emiland, useNA = "always")
-
-table(dat$attention_bioemi_yes, dat$attention_landemi_yes, useNA = "always")
-
+# speeding on the treatment
 identify_speeders <- function(dat, imp_to_avg_Swi_1, time_names = "t_bio_emi", variable_name = "speeder_treatment") {
   
   dat %>% 
@@ -345,18 +304,88 @@ dat$speeder_treatment_bioemi <- identify_speeders(dat, imp_to_avg_Swi_1, time_na
 dat$speeder_treatment_landemi <- identify_speeders(dat, imp_to_avg_Swi_2, time_names = "t_emi_land", variable_name = "speeder_treatment_landemi")
 
 
-# dat$e_tradeoff_biodiv <- as.numeric(dat$e_tradeoff_biodiv)
-# dat$e_tradeoff_emiland <- as.numeric(dat$e_tradeoff_emiland) 
-# 
-# dat$attention_bioemi_yes <- dat$att_check_1_bioemi <=0 & dat$e_tradeoff_biodiv <= 0
-# dat$attention_bioemi_yes <- ifelse(is.na(dat$attention_bioemi_yes), F, dat$attention_bioemi_yes)
-# dat$attention_landemi_yes <- !is.na(dat$att_check_1_emiland) & dat$att_check_1_emiland == 1 & dat$e_tradeoff_emiland <= 0
-# dat$attention_landemi_yes <- ifelse(is.na(dat$attention_landemi_yes), F, dat$attention_landemi_yes)
-# 
-# table(dat$attention_bioemi_yes, dat$attention_landemi_yes)
+# treatment attention checks
+dat %>% 
+  select(prior_bioemi_2nd, att_check_1_bioemi, att_check_2_bioemi, 
+         # e_tradeoff_biodiv, 
+         prior_landemi_2nd, att_check_1_emiland, att_check_2_emiland,
+         # e_tradeoff_emiland, 
+         treatment_group) %>% 
+  filter(treatment_group == "treatment")
 
-# med_below40_prior_benefit <- summary(as.numeric(dat$treat))[3]*.4
-# vote <- vote[vote$`QID566_Page Submit` < med_below40_prior_benefit,]
+dat <- dat %>% 
+  mutate(att_check_bioemi = case_when(is.na(att_check_1_bioemi) & is.na(att_check_2_bioemi) ~ NA,
+                                      !is.na(att_check_1_bioemi) & is.na(att_check_2_bioemi) ~ att_check_1_bioemi,
+                                      is.na(att_check_1_bioemi) & !is.na(att_check_2_bioemi) ~ att_check_2_bioemi)) %>% 
+  mutate(attention_bioemi_yes = 
+           (att_check_bioemi == "More people found  biodiversity  more important than I thought." 
+            & e_tradeoff_biodiv > 0) 
+         | (att_check_bioemi == "More people found CO2-emissions  more important than I tought."
+            & e_tradeoff_biodiv <= 0)) %>% 
+  mutate(att_check_landemi = case_when(is.na(att_check_1_emiland) & is.na(att_check_2_emiland) ~ NA,
+                                       !is.na(att_check_1_emiland) & is.na(att_check_2_emiland) ~ att_check_1_emiland,
+                                       is.na(att_check_1_emiland) & !is.na(att_check_2_emiland) ~ att_check_2_emiland)) %>% 
+  mutate(attention_landemi_yes = 
+           (att_check_landemi == "More people found  land-use  more important than I thought." 
+            & e_tradeoff_emiland > 0) 
+         | (att_check_landemi == "More people found CO2-emissions  more important than I tought."
+            & att_check_landemi <= 0)) %>%
+  # non-forced choice NAs are false
+  mutate(attention_landemi_yes = ifelse(is.na(attention_landemi_yes) & treatment_group == "treatment", FALSE, attention_landemi_yes)) %>% 
+  # control group is true
+  mutate(attention_bioemi_yes = ifelse(is.na(attention_bioemi_yes) & treatment_group == "control", TRUE, attention_bioemi_yes),
+         attention_landemi_yes = ifelse(is.na(attention_landemi_yes) & treatment_group == "control", TRUE, attention_landemi_yes)) %>% 
+  # combine the two
+  mutate(attention_check_yes = attention_bioemi_yes & attention_landemi_yes) 
+
+
+
+dat <- dat %>% 
+  mutate(att_check_bioemi = case_when(is.na(att_check_1_bioemi) & is.na(att_check_2_bioemi) ~ NA,
+                                      !is.na(att_check_1_bioemi) & is.na(att_check_2_bioemi) ~ att_check_1_bioemi,
+                                      is.na(att_check_1_bioemi) & !is.na(att_check_2_bioemi) ~ att_check_2_bioemi)) %>% 
+  mutate(attention_bioemi_yes = ifelse(
+    (att_check_bioemi == "More people found  biodiversity  more important than I thought." 
+     & e_tradeoff_biodiv > 0) 
+    | (att_check_bioemi == "More people found CO2-emissions  more important than I tought."
+       & e_tradeoff_biodiv <= 0), TRUE, FALSE
+  )) %>% 
+  mutate(att_check_landemi = case_when(is.na(att_check_1_emiland) & is.na(att_check_2_emiland) ~ NA,
+                                       !is.na(att_check_1_emiland) & is.na(att_check_2_emiland) ~ att_check_1_emiland,
+                                       is.na(att_check_1_emiland) & !is.na(att_check_2_emiland) ~ att_check_2_emiland)) %>% 
+  mutate(attention_landemi_yes = ifelse(
+           (att_check_landemi == "More people found  land-use  more important than I thought." 
+            & e_tradeoff_emiland > 0) 
+         | (att_check_landemi == "More people found CO2-emissions  more important than I tought."
+            & e_tradeoff_emiland <= 0), TRUE, FALSE
+         )) %>%
+  # non-forced choice NAs are false
+  mutate(attention_landemi_yes = ifelse(is.na(attention_landemi_yes) & treatment_group == "treatment", FALSE, attention_landemi_yes)) %>% 
+  # control group is true
+  mutate(attention_bioemi_yes = ifelse(is.na(attention_bioemi_yes) & treatment_group == "control", TRUE, attention_bioemi_yes),
+         attention_landemi_yes = ifelse(is.na(attention_landemi_yes) & treatment_group == "control", TRUE, attention_landemi_yes)) %>% 
+  # combine the two
+  mutate(attention_check_yes = attention_bioemi_yes & attention_landemi_yes) 
+
+
+# 
+# table(dat$att_check_1_bioemi[dat$treatment_group == "treatment"], useNA = "always")
+# table(dat$att_check_landemi[dat$treatment_group == "treatment"], useNA = "always")
+# 
+table(dat$attention_bioemi_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
+table(dat$attention_landemi_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
+# table(dat$attention_bioemi_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
+# table(dat$attention_landemi_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
+# table(dat$att_check_1_bioemi, useNA = "always")
+# table(dat$att_check_1_emiland, useNA = "always")
+
+table(dat$attention_bioemi_yes, dat$attention_landemi_yes, useNA = "always")
+
+# lm(post_landemi ~ prior_landemi_2nd*tradeoff_con_treat, data = dat %>% filter(attention_check_yes)) %>% summary()
+# 
+# 
+# lm(post_bioemi ~ prior_landemi_2nd*tradeoff_con_treat + prior_bioemi_2nd*tradeoff_con_treat, data = dat %>% filter(attention_check_yes, !speeder_treatment_landemi)) %>% summary()
+# lm(post_landemi ~ tradeoff_con_treat, data = dat %>% filter(attention_check_yes)) %>% summary()
 
 ################################################################################
 # export clean data
@@ -365,7 +394,7 @@ dat$speeder_treatment_landemi <- identify_speeders(dat, imp_to_avg_Swi_2, time_n
 # vector of variables
 vars_of_interest <- c(
   "prior_bioemi", "prior_landemi", "prior_bioemi_2nd", "prior_landemi_2nd", 
-  "post_bioemi", "post_landemi",
+  "post_bioemi", "post_landemi", "complementarity_bioemi", "complementarity_landemi",
   "treatment_group", 
   "treatment_positive_bioemi", "treatment_positive_landemi",
   "gap_to_true_value_bioemi", "gap_to_true_value_landemi",
@@ -374,7 +403,7 @@ vars_of_interest <- c(
   # "gap_prior_treatement_bioemi", "gap_prior_treatement_landemi",
   # "gap_prior_post_bioemi", "gap_prior_post_landemi",
   # "learning_rate_bioemi", "learning_rate_landemi",
-  
+  "perceived_benefit",
   "acceptance_alpinePV", "acceptance_wind", "acceptance_newnucs", "acceptance_prolongnucs",
   "trust_in_sci", "left_right", "gender_binary", "education_group", "education_numeric", "urban_rural", "urban_rural_numeric", "urban_rural_binary", "income", "age",
   "climate_salience",
