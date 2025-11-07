@@ -141,32 +141,6 @@ dat <- dat %>%
   mutate(gap_to_true_value_bioemi = prior_bioemi_2nd-0,
          gap_to_true_value_landemi = prior_landemi_2nd-1)
 
-# # treatment direction 2 <----------------------------- either replace above or cut this
-# dat <- dat %>%
-#   mutate(treatment_positive_bioemi = case_when(
-#     e_tradeoff_biodiv <(-1) & treatment_group == "control" ~ "positive_control",
-#     e_tradeoff_biodiv %in% c(-1,0,1) & treatment_group == "control" ~ "accurate_control",
-#     e_tradeoff_biodiv >1 & treatment_group == "control" ~ "negative_control",
-#     e_tradeoff_biodiv <(-1) & treatment_group == "treatment" ~ "positive_treatment",
-#     e_tradeoff_biodiv %in% c(-1,0,1) & treatment_group == "treatment" ~ "accurate_treatment",
-#     e_tradeoff_biodiv >1 & treatment_group == "treatment" ~ "negative_treatment")
-#   ) %>% 
-#   mutate(treatment_positive_landemi = case_when(
-#     e_tradeoff_emiland <0 & treatment_group == "control" ~ "positive_control",
-#     e_tradeoff_emiland %in% c(0,1,2)  & treatment_group == "control" ~ "accurate_control",
-#     e_tradeoff_emiland >2 & treatment_group == "control" ~ "negative_control",
-#     e_tradeoff_emiland <0 & treatment_group == "treatment" ~ "positive_treatment",
-#     e_tradeoff_emiland %in% c(0,1,2) & treatment_group == "treatment" ~ "accurate_treatment",
-#     e_tradeoff_emiland >2 & treatment_group == "treatment" ~ "negative_treatment")
-#   )
-# 
-# dat$treatment_positive_bioemi <- factor(dat$treatment_positive_bioemi, 
-#                                         levels = c("positive_control", "accurate_control", "positive_treatment",
-#                                                    "negative_control", "accurate_treatment", "negative_treatment"))
-# dat$treatment_positive_landemi <- factor(dat$treatment_positive_landemi, 
-#                                          levels = c("positive_control", "accurate_control", "positive_treatment",
-#                                                     "negative_control", "accurate_treatment", "negative_treatment"))
-
 
 # ----      belief confidence       ---- #
 # helper function to reverse confidence scores
@@ -367,25 +341,10 @@ dat <- dat %>%
   # combine the two
   mutate(attention_check_yes = attention_bioemi_yes & attention_landemi_yes) 
 
-
-# 
-# table(dat$att_check_1_bioemi[dat$treatment_group == "treatment"], useNA = "always")
-# table(dat$att_check_landemi[dat$treatment_group == "treatment"], useNA = "always")
-# 
 table(dat$attention_bioemi_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
 table(dat$attention_landemi_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
-# table(dat$attention_bioemi_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
-# table(dat$attention_landemi_yes, dat$treatment_positive_bioemi_and_landemi, useNA = "always")
-# table(dat$att_check_1_bioemi, useNA = "always")
-# table(dat$att_check_1_emiland, useNA = "always")
 
 table(dat$attention_bioemi_yes, dat$attention_landemi_yes, useNA = "always")
-
-# lm(post_landemi ~ prior_landemi_2nd*tradeoff_con_treat, data = dat %>% filter(attention_check_yes)) %>% summary()
-# 
-# 
-# lm(post_bioemi ~ prior_landemi_2nd*tradeoff_con_treat + prior_bioemi_2nd*tradeoff_con_treat, data = dat %>% filter(attention_check_yes, !speeder_treatment_landemi)) %>% summary()
-# lm(post_landemi ~ tradeoff_con_treat, data = dat %>% filter(attention_check_yes)) %>% summary()
 
 ################################################################################
 # export clean data
@@ -400,9 +359,6 @@ vars_of_interest <- c(
   "gap_to_true_value_bioemi", "gap_to_true_value_landemi",
   "treatment_positive_bioemi_and_landemi",
   "confidence", "coping_on_income",
-  # "gap_prior_treatement_bioemi", "gap_prior_treatement_landemi",
-  # "gap_prior_post_bioemi", "gap_prior_post_landemi",
-  # "learning_rate_bioemi", "learning_rate_landemi",
   "perceived_benefit",
   "acceptance_alpinePV", "acceptance_wind", "acceptance_newnucs", "acceptance_prolongnucs",
   "trust_in_sci", "left_right", "gender_binary", "education_group", "education_numeric", "urban_rural", "urban_rural_numeric", "urban_rural_binary", "income", "age",

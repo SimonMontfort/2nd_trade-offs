@@ -133,12 +133,12 @@ p_desc <- dat_clean_desc %>%
                "climate_salience" = "Salience: Climate Change",
 
                "attention_check_yes" = "Attention check (not failed)",
-               "prior_bioemi"          = "Prior\nbiodiversity vs. emissions",
-               "prior_landemi"         = "Prior\nland use vs. emissions",
+               "prior_bioemi"          = "1st-order prior\nbiodiversity vs. emissions",
+               "prior_landemi"         = "1st-order prior\nlandscape vs. emissions",
                "prior_bioemi_2nd"      = "2nd order prior\nbiodiversity vs. emissions",
-               "prior_landemi_2nd"     = "2nd order prior\nland use vs. emissions",
+               "prior_landemi_2nd"     = "2nd order prior\nlandscape vs. emissions",
                "post_bioemi"           = "Posterior\nbiodiversity vs. emissions",
-               "post_landemi"          = "Posterior\nland use vs. emissions",
+               "post_landemi"          = "Posterior\nlandscape vs. emissions",
                "acceptance_alpinePV"   = "Acceptance of\nalpine PV",
                "acceptance_wind"       = "Acceptance of\nwind power",
                "acceptance_newnucs"    = "Acceptance of\nnew nuclear plants",
@@ -181,14 +181,14 @@ dat_clean_desc_renamed <- dat_clean_desc %>%
     "Confidence" = confidence,
     "Attention check (not failed)" = attention_check_yes,
     
-    "Complementarity biodiversity conservation + emission reductions" = complementarity_bioemi, 
-    "Complementarity landscape conservation + emission reductions" = complementarity_landemi,
-    "Prior biodiversity vs. emissions" = prior_bioemi,
-    "Prior land use vs. emissions" = prior_landemi,
+    "Synergy biodiversity conservation + emission reductions" = complementarity_bioemi, 
+    "Synergy landscape protection + emission reductions" = complementarity_landemi,
+    "1st-order prior biodiversity vs. emissions" = prior_bioemi,
+    "1st-order prior landscape vs. emissions" = prior_landemi,
     "2nd order prior biodiversity vs. emissions" = prior_bioemi_2nd,
-    "2nd order prior land use vs. emissions" = prior_landemi_2nd,
+    "2nd order prior landscape vs. emissions" = prior_landemi_2nd,
     "Posterior biodiversity vs. emissions" = post_bioemi,
-    "Posterior land use vs. emissions" = post_landemi,
+    "Posterior landscape vs. emissions" = post_landemi,
     "Acceptance of alpine PV" = acceptance_alpinePV,
     "Acceptance of wind power" = acceptance_wind,
     "Acceptance of new nuclear plants" = acceptance_newnucs,
@@ -232,14 +232,14 @@ labs_desc <- c(
   "Confidence",
 
   "Attention check (not failed)",
-  "Complementarity biodiversity conservation + emission reductions",
-  "Complementarity landscape conservation + emission reductions",
-  "Prior biodiversity vs. emissions",
-  "Prior land use vs. emissions",
+  "Synergy biodiversity conservation + emission reductions",
+  "Synergy landscape protection + emission reductions",
+  "1st-order prior biodiversity vs. emissions",
+  "1st-order prior landscape vs. emissions",
   "2nd order prior biodiversity vs. emissions",
-  "2nd order prior land use vs. emissions",
+  "2nd order prior landscape vs. emissions",
   "Posterior biodiversity vs. emissions",
-  "Posterior land use vs. emissions",
+  "Posterior landscape vs. emissions",
   
   "Acceptance of alpine PV",
   "Acceptance of wind power",
@@ -324,23 +324,23 @@ fig2a <- pre_and_treat_dist %>%
                              "Expectation about others' preferences\n(prior 2nd order belief)"),
     outcome = ifelse(grepl("bioemi", name), 
                      "Biodiversity conservation\nvs. emission reduction", 
-                     "Land use\nvs. emission reduction")) %>% 
+                     "Landscape protection\nvs. emission reduction")) %>% 
   mutate(
-    truth = ifelse(outcome == "Land use\nvs. emission reduction", 0, 0),
+    truth = ifelse(outcome == "Landscape protection\nvs. emission reduction", 0, 0),
     est_type = case_when(
-      slider_value > truth & outcome == "Land use\nvs. emission reduction" ~ "Prefer\nemission\nreductions",
-      slider_value < truth & outcome == "Land use\nvs. emission reduction" ~ "Prefer\nland\npreservation",
-      slider_value == truth & outcome == "Land use\nvs. emission reduction" ~ "Both are\nequally valued",
-      slider_value > truth & outcome != "Land use\nvs. emission reduction" ~ " Prefer\nemission\nreductions",
-      slider_value < truth & outcome != "Land use\nvs. emission reduction" ~ "Prefer\nbiodiversity\nconservation",
-      slider_value == truth & outcome != "Land use\nvs. emission reduction" ~ " Both are\nequally valued"
+      slider_value > truth & outcome == "Landscape protection\nvs. emission reduction" ~ "Prefer\nemission\nreductions",
+      slider_value < truth & outcome == "Landscape protection\nvs. emission reduction" ~ "Prefer\nlandscape\nprotection",
+      slider_value == truth & outcome == "Landscape protection\nvs. emission reduction" ~ "Both are\nequally valued",
+      slider_value > truth & outcome != "Landscape protection\nvs. emission reduction" ~ " Prefer\nemission\nreductions",
+      slider_value < truth & outcome != "Landscape protection\nvs. emission reduction" ~ "Prefer\nbiodiversity\nconservation",
+      slider_value == truth & outcome != "Landscape protection\nvs. emission reduction" ~ " Both are\nequally valued"
     ),
     est_type = factor(
       est_type,
       levels = c(
         "Prefer\nemission\nreductions",
         "Both are\nequally valued",
-        "Prefer\nland\npreservation",
+        "Prefer\nlandscape\nprotection",
         " Prefer\nemission\nreductions",
         " Both are\nequally valued",
         "Prefer\nbiodiversity\nconservation"
@@ -387,7 +387,7 @@ fig2b <- dat_clean %>%
   mutate(
     outcome = ifelse(grepl("bioemi", outcome), 
                      "Biodiversity conservation\nvs. emission reduction", 
-                     "Land use\nvs. emission reduction")) %>% 
+                     "Landscape protection\nvs. emission reduction")) %>% 
   mutate(name = factor(name, levels = c("Synergy", "Neither nor", "Trade-off"))) %>% 
   ggplot(aes(x = name, y = value, )) +
   geom_bar(stat = "identity", 
@@ -397,7 +397,7 @@ fig2b <- dat_clean %>%
             vjust = -0.3, size = 3.5) + 
   facet_wrap(~outcome, scales = "free_x") +
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.1))) +
-  labs(x = "", y = "Percentage", fill = "Group", title = "Trade-offs and synergies in environmental goals") + 
+  labs(x = "", y = "Percentage", fill = "Group", title = "Share of the population, which perceives trade-offs or synergies in environmental goals") + 
   theme_SM() +
   theme(legend.position = c(.25,.85),
         legend.margin = margin(rep(2, 4)),

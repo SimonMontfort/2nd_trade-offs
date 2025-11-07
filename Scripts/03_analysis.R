@@ -128,25 +128,17 @@ coef_labels <- c(
   "treatment_positive_bioemi_and_landeminegative_treatment:left_right" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\less than expected\\\\$\\times$Left–right ideology}",
   "treatment_positive_bioemi_and_landemipositive_treatment:left_right" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\more than expected\\\\$\\times$Left–right ideology}",
   "treatment_positive_bioemi_and_landemimixed_treatment:left_right" = "\\shortstack{Treatment: mixed$\\times$Left–right ideology}"
-
-  
-  # "treatment_positive_bioemi_and_landemiboth_negative:trust_in_sci" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\less than expected\\\\$\\times$Trust in science}",
-  # "treatment_positive_bioemi_and_landemiboth_positive:trust_in_sci" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\more than expected\\\\$\\times$Trust in science}",
-  # "treatment_positive_bioemi_and_landemimixed:trust_in_sci" = "\\shortstack{Treatment: mixed\\\\$\\times$Trust in science}",
-  # "treatment_positive_bioemi_and_landeminegative_treatment:left_right" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\less than expected\\\\$\\times$Left–right ideology}",
-  # "treatment_positive_bioemi_and_landemipositive_treatment:left_right" = "\\shortstack{Treatment: others support\\\\emission reductions\\\\more than expected\\\\$\\times$Left–right ideology}",
-  # "treatment_positive_bioemi_and_landemimixed:left_right" = "\\shortstack{Treatment: mixed\\\\$\\times$Left–right ideology}"
 )
 
 # get_coef_labels_list(models, coef_labels) get_coef_labels_list(models, coef_labels)
 
 dv_labels <- c(
   prior_bioemi          = "\\rotatebox{90}{Prior biodiversity vs. emissions}",
-  prior_landemi         = "\\rotatebox{90}{Prior land use vs. emissions}",
+  prior_landemi         = "\\rotatebox{90}{Prior landscape vs. emissions}",
   prior_bioemi_2nd      = "\\rotatebox{90}{2nd order prior biodiversity vs. emissions}",
-  prior_landemi_2nd     = "\\rotatebox{90}{2nd order prior land use vs. emissions}",
+  prior_landemi_2nd     = "\\rotatebox{90}{2nd order prior landscape vs. emissions}",
   post_bioemi           = "\\rotatebox{90}{Posterior biodiversity vs. emissions}",
-  post_landemi          = "\\rotatebox{90}{Posterior land use vs. emissions}",
+  post_landemi          = "\\rotatebox{90}{Posterior landscape vs. emissions}",
   acceptance_alpinePV   = "\\rotatebox{90}{Acceptance of alpine PV}",
   acceptance_wind       = "\\rotatebox{90}{Acceptance of wind power}",
   acceptance_newnucs    = "\\rotatebox{90}{Acceptance of new nuclear plants}",
@@ -217,9 +209,9 @@ texreg::texreg(
 # --- Collect model results into tidy format ---
 mods <- list(
   "Biodiversity vs\nemissions\n(1st order)" = lm_prior_bioemi,
-  "Land use vs\nemissions\n(1st order)"     = lm_prior_landemi,
+  "Landscape vs\nemissions\n(1st order)"     = lm_prior_landemi,
   "Biodiversity vs\nemissions\n(2nd order)" = lm_prior_bioemi_2nd,
-  "Land use vs\nemissions\n(2nd order)"     = lm_prior_landemi_2nd
+  "Landscape vs\nemissions\n(2nd order)"     = lm_prior_landemi_2nd
 )
 
 # Collect results again
@@ -233,7 +225,7 @@ df_forest <- purrr::map_dfr(mods, ~tidy(.x, conf.int = TRUE), .id = "Model") %>%
                   "climate_salienceYes" = "Salience: Climate Change",
                   "education_numeric" = "Education",
                   "urban_rural_binaryurban" = "Urban–Rural",
-                  "coping_on_incomeYes" = "Income: Yes",
+                  "coping_on_incomeYes" = "Coping on income (yes)",
                   "confidence" = "Confidence"
     ),
     term = factor(term, levels = c(
@@ -243,12 +235,12 @@ df_forest <- purrr::map_dfr(mods, ~tidy(.x, conf.int = TRUE), .id = "Model") %>%
       "Salience: Climate Change",
       "Male (ref: female)",
       "Education",
-      "Coping on income: Yes",
+      "Coping on income (yes)",
       "Confidence"
     )),
     Model = factor(Model, 
-                   levels = rev(c("Biodiversity vs\nemissions\n(1st order)", "Land use vs\nemissions\n(1st order)",
-                              "Biodiversity vs\nemissions\n(2nd order)", "Land use vs\nemissions\n(2nd order)")))
+                   levels = rev(c("Biodiversity vs\nemissions\n(1st order)", "Landscape vs\nemissions\n(1st order)",
+                              "Biodiversity vs\nemissions\n(2nd order)", "Landscape vs\nemissions\n(2nd order)")))
   )
 
 df_forest <- df_forest %>%
@@ -257,20 +249,20 @@ df_forest <- df_forest %>%
       # Left–Right ideology
       term == "Left–Right ideology" & Model == "Biodiversity vs\nemissions\n(1st order)" ~ 
         "Right-leaning respondents\nprioritize biodiversity over CO₂\nreductions.",
-      term == "Left–Right ideology" & Model == "Land use vs\nemissions\n(1st order)" ~ 
-        "Right-leaning respondents\nprioritize land use over CO₂\nreductions.",
+      term == "Left–Right ideology" & Model == "Landscape vs\nemissions\n(1st order)" ~ 
+        "Right-leaning respondents\nprioritize landscape protection over CO₂\nreductions.",
       term == "Left–Right ideology" & Model == "Biodiversity vs\nemissions\n(2nd order)" ~ 
         "",
-      term == "Left–Right ideology" & Model == "Land use vs\nemissions\n(2nd order)" ~ 
+      term == "Left–Right ideology" & Model == "Landscape vs\nemissions\n(2nd order)" ~ 
         "",
       
       # Trust in science
       term == "Trust in science" & Model %in% c("Biodiversity vs\nemissions\n(1st order)") ~ 
         "",
       term == "Trust in science" & Model %in% c("Biodiversity vs\nemissions\n(2nd order)", 
-                                                "Land use vs\nemissions\n(1st order)") ~ 
+                                                "Landscape vs\nemissions\n(1st order)") ~ 
         "",
-      term == "Trust in science" & Model == "Land use vs\nemissions\n(2nd order)" ~ 
+      term == "Trust in science" & Model == "Landscape vs\nemissions\n(2nd order)" ~ 
         "Those who trust in\nscience, expect others\nto prioritize landscape\nprotection",
       
       # Gender
@@ -278,48 +270,48 @@ df_forest <- df_forest %>%
         "",
       term == "Male (ref: female)" & Model == "Biodiversity vs\nemissions\n(2nd order)" ~
         "Men expect others to\nprioritize biodiversity.",
-      term == "Male (ref: female)" & Model == "Land use vs\nemissions\n(2nd order)" ~
+      term == "Male (ref: female)" & Model == "Landscape vs\nemissions\n(2nd order)" ~
         "",
       
       # education_group
       term == "education_group" & Model %in% c("Biodiversity vs\nemissions\n(1st order)") ~
         "Higher education_group is linked\nto lower prioritization\nof emission reductions",
-      term == "education_group" & Model %in% c("Land use vs\nemissions\n(1st order)") ~
+      term == "education_group" & Model %in% c("Landscape vs\nemissions\n(1st order)") ~
         "",
       term == "education_group" & Model %in% c(
-                                         "Higher educated respondents expect\nothers to prioritize land use") ~
-        "education_group has weak or mixed effect\non expectations about others'\nprioritization.",
+                                         "Higher educated respondents expect\nothers to prioritize landscape protection") ~
+        "Education has weak or mixed effect\non expectations about others'\nprioritization.",
       
       # Urban–Rural
       term == "Urban–Rural" & Model %in% c("Biodiversity vs\nemissions\n(1st order)", 
-                                           "Land use vs\nemissions\n(1st order)",
+                                           "Landscape vs\nemissions\n(1st order)",
                                            "Biodiversity vs\nemissions\n(2nd order)") ~
         "",
-      term == "Urban–Rural" & Model %in% c("Land use vs\nemissions\n(2nd order)") ~
-        "Rural residents think others\nprioritize emissions reduction over\nland use",
+      term == "Urban–Rural" & Model %in% c("Landscape vs\nemissions\n(2nd order)") ~
+        "Rural residents think others\nprioritize landscape protection\nover emissions reduction",
       
       # Income
       term == "Income: Yes" & Model %in% c(
                                            "Biodiversity vs\nemissions\n(1st order)", 
                                            "Biodiversity vs\nemissions\n(2nd order)") ~
         "",
-      term == "Income: Yes" & Model %in% c("Land use vs\nemissions\n(1st order)") ~
-        "High-income respondents\n priorize land use over\nemission reduction.",
-      term == "Income: Yes" & Model %in% c("Land use vs\nemissions\n(2nd order)") ~
-        "High-income respondents think\nothers priorize land use\nover emission reduction.",
+      term == "Coping on income (yes)" & Model %in% c("Landscape vs\nemissions\n(1st order)") ~
+        "High-income respondents\n priorize landscape protection\nover emission reduction.",
+      term == "Coping on income (yes)" & Model %in% c("Landscape vs\nemissions\n(2nd order)") ~
+        "High-income respondents think\nothers priorize landscape pro-\ntection over emission reduction.",
       
       # Confidence
       term == "Confidence" & Model %in% c("Biodiversity vs\nemissions\n(1st order)", 
-                                          "Land use vs\nemissions\n(1st order)", 
+                                          "Landscape vs\nemissions\n(1st order)", 
                                           "Biodiversity vs\nemissions\n(2nd order)") ~
         "",
-      term == "Confidence" & Model %in% c("Land use vs\nemissions\n(2nd order)") ~
-        "Respondents confident about their\nprior beliefs expect others to\nprioritize land use",
+      term == "Confidence" & Model %in% c("Landscape vs\nemissions\n(2nd order)") ~
+        "Resondents confident in their\nprior beliefs expect others to\nprioritize landscape protection",
       # Confidence
       term == "Salience: Climate Change" & Model %in% c("Biodiversity vs\nemissions\n(1st order)")~
-        "Respondents who think Chlimate\nChange is an important issue,\nprioritize biodiversity less",
-      term == "Salience: Climate Change" & Model %in% c("Land use vs\nemissions\n(1st order)") ~
-        "Respondents who think Chlimate\nChange is an important issue,\nprioritize land use less",
+        "Respondents who think climate\nchange is an important issue,\nprioritize emission reductions",
+      term == "Salience: Climate Change" & Model %in% c("Landscape vs\nemissions\n(1st order)") ~
+        "Respondents who think climate\nchange is an important issue,\nprioritize emission reductions",
       TRUE ~ NA_character_
     )
   )
@@ -341,7 +333,7 @@ fig3 <- ggplot(df_forest, aes(x = estimate, y = Model, color = Model)) +
             hjust = 0, size = 3.2, lineheight = 0.9) +
   scale_color_npg() +
   labs(x = "Coefficient estimate (95% CI)", y = "",
-       title = "Effects of ideology and covariates on first- and second-order priors") +
+       title = "Explaining first- and second-order prior beliefs (before the experiment)") +
   facet_wrap(~term, scales = "free_y", ncol = 2) +
   theme_SM() +
   xlim(c(-0.75, 1)) +  # leave space for right-hand labels
@@ -378,7 +370,7 @@ texreg::texreg(
 # Main-effect models
 mods <- list(
   "Biodiversity conservation\nvs. emission reduction" = lm_influence_bioemi_main,
-  "Land use\nvs. emission reduction" = lm_influence_landemi_main
+  "Landscape protection\nvs. emission reduction" = lm_influence_landemi_main
 )
 
 df_forest <- purrr::map_dfr(mods, ~ {
@@ -462,7 +454,7 @@ fig4a
 # # Main-effect models
 # mods <- list(
 #   "Biodiversity conservation\nvs. emission reduction" = lm_influence_bioemi_8,
-#   "Land use\nvs. emission reduction" = lm_influence_landemi_8
+#   "Landscape\nvs. emission reduction" = lm_influence_landemi_8
 # )
 # 
 # 
@@ -495,7 +487,7 @@ fig4a
 # # Both models
 # mods <- list(
 #   "Perception gap:\nBiodiversity conservation\nvs. emission reduction" = lm_influence_bioemi_8,
-#   "Perception gap:\nLand use\nvs. emission reduction" = lm_influence_landemi_8
+#   "Perception gap:\nLandscape\nvs. emission reduction" = lm_influence_landemi_8
 # )
 # 
 # # Both gap variables
@@ -507,7 +499,7 @@ fig4a
 # }, .id = "Model") %>% 
 #   mutate(gap_var = ifelse(gap_var == "gap_to_true_value_bioemi",
 #                           "Own belief:\nBiodiversity conservation\nvs. emission reduction",
-#                           "Own belief:\nLand use\nvs. emission reduction"))
+#                           "Own belief:\nLandscape\nvs. emission reduction"))
 # 
 # # Check coverage
 # table(df_forest$Model, df_forest$gap_var)
@@ -516,7 +508,7 @@ fig4a
 #   filter(grepl(":", term)) %>% 
 #   mutate(gap_var = ifelse(grepl("bioemi", term),
 #                           "Own belief:\nBiodiversity conservation\nvs. emission reduction",
-#                           "Own belief:\nLand use\nvs. emission reduction")) %>%
+#                           "Own belief:\nLandscape\nvs. emission reduction")) %>%
 #   group_by(Model, gap_var) %>%
 #   summarise(p.value = min(p.value), .groups = "drop") %>%
 #   mutate(label = paste0("P-value (interaction): ", signif(p.value, 3)))
@@ -660,7 +652,7 @@ texreg::texreg(
 # Main-effect models
 mods <- list(
   "Biodiversity conservation\nvs. emission reduction" = lm_influence_bioemi_8,
-  "Land use\nvs. emission reduction" = lm_influence_landemi_8
+  "Landscape protection\nvs. emission reduction" = lm_influence_landemi_8
 )
 
 # Extract coefficients for treatment effects only
@@ -1292,7 +1284,7 @@ df_forest <- purrr::map_dfr(mods, function(m) {
 }, .id = "Model") %>% 
   mutate(gap_var = ifelse(gap_var == "gap_to_true_value_bioemi",
                           "Biodiversity conservation\nvs. emission reduction",
-                          "Land use\nvs. emission reduction")) %>% 
+                          "Landscape protection\nvs. emission reduction")) %>% 
   mutate(Model = factor(Model, levels = c("Alpine PV", "Wind", "New nuclear", "Prolong nuclear")))
 
 # Check coverage
@@ -1302,7 +1294,7 @@ p_vals <- purrr::map_dfr(mods, tidy, .id = "Model") %>%
   filter(grepl(":", term)) %>% 
   mutate(gap_var = ifelse(grepl("bioemi", term),
                           "Biodiversity conservation\nvs. emission reduction",
-                          "Land use\nvs. emission reduction")) %>%
+                          "Landscape protection\nvs. emission reduction")) %>%
   group_by(Model, gap_var) %>%
   summarise(p.value = min(p.value), .groups = "drop") %>%
   mutate(label = paste0("P-value (interaction):\n", signif(p.value, 3)))
@@ -1551,12 +1543,6 @@ texreg(models,
        file    = "Tables/explaining_acceptance_prolongnucs.tex")
 
 
-
-library(emmeans)
-library(broom)
-library(dplyr)
-library(ggplot2)
-
 # Combine models into a named list
 mods <- list(
   "Alpine PV" = lm_acceptance_alpinePV_8,
@@ -1569,32 +1555,29 @@ terms_to_plot <- c("prior_bioemi", "prior_landemi",
                    "prior_bioemi_2nd", "prior_landemi_2nd",
                    "complementarity_bioemi", "complementarity_landemi")
 
-# mods is your named list of models, e.g.
-# mods <- list("Alpine PV" = lm_acceptance_alpinePV, "Wind" = lm_acceptance_wind, ...)
-
 df_forest <- purrr::map_dfr(mods, ~ {
   broom::tidy(.x, conf.int = TRUE)
 }, .id = "Model") %>%
   filter(term %in% terms_to_plot) %>%
   mutate(
     term_label = recode(term,
-                        "prior_bioemi"            = "Prior: biodiversity vs emissions",
-                        "prior_landemi"           = "Prior: land use vs emissions",
+                        "prior_bioemi"            = "1st-order prior: biodiversity vs emissions",
+                        "prior_landemi"           = "1st-order prior: landscape vs emissions",
                         "prior_bioemi_2nd"        = "2nd-order prior: biodiversity vs emissions",
-                        "prior_landemi_2nd"       = "2nd-order prior: land use vs emissions",
-                        "complementarity_bioemi"  = "Complementarity: biodiversity vs emissions",
-                        "complementarity_landemi" = "Complementarity: land use vs emissions"
+                        "prior_landemi_2nd"       = "2nd-order prior: landscape vs emissions",
+                        "complementarity_bioemi"  = "Synergy: biodiversity vs emissions",
+                        "complementarity_landemi" = "Synergy: landscape vs emissions"
     )
   )
 
 # Set a fixed order of terms across all panels:
 term_levels <- c(
-  "Complementarity: land use vs emissions",
-  "Complementarity: biodiversity vs emissions",
-  "2nd-order prior: land use vs emissions",
+  "Synergy: landscape vs emissions",
+  "Synergy: biodiversity vs emissions",
+  "2nd-order prior: landscape vs emissions",
   "2nd-order prior: biodiversity vs emissions",
-  "Prior: land use vs emissions",
-  "Prior: biodiversity vs emissions"
+  "1st-order prior: landscape vs emissions",
+  "1st-order prior: biodiversity vs emissions"
 )
 df_forest <- df_forest %>%
   mutate(term_label = factor(term_label, levels = term_levels),
@@ -1606,11 +1589,11 @@ p_explaining_acceptance <- ggplot(df_forest, aes(x = estimate, y = term_label)) 
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.2) +
   facet_wrap(~ Model, ncol = 2, scales = "free_y") +
   geom_vline(xintercept = 0, linetype = 2, color = "grey50") +
-  labs(x = "Marginal means (95% CI)", y = NULL, title = "") +
+  labs(x = "OLS point estimate (95% CI)", y = NULL, title = "") +
   theme_SM() +
   theme(strip.text = element_text(face = "bold"))
 p_explaining_acceptance
-ggsave(p_explaining_acceptance, filename = "Plots/p_explaining_acceptance.pdf", width = 10, height = 7)
+ggsave(p_explaining_acceptance, filename = "Plots/fig6.pdf", width = 10, height = 7)
 
 
 
