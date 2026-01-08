@@ -250,7 +250,7 @@ df_forest <- df_forest %>%
       term == "Left–Right ideology" & Model == "Biodiversity vs\nemissions\n(1st order)" ~ 
         "Right-leaning respondents\nprioritize biodiversity over CO₂\nreductions.",
       term == "Left–Right ideology" & Model == "Landscape vs\nemissions\n(1st order)" ~ 
-        "Right-leaning respondents\nprioritize landscape protection over CO₂\nreductions.",
+        "Right-leaning respondents\nprioritize landscape protection\nover CO₂ reductions.",
       term == "Left–Right ideology" & Model == "Biodiversity vs\nemissions\n(2nd order)" ~ 
         "",
       term == "Left–Right ideology" & Model == "Landscape vs\nemissions\n(2nd order)" ~ 
@@ -306,7 +306,7 @@ df_forest <- df_forest %>%
                                           "Biodiversity vs\nemissions\n(2nd order)") ~
         "",
       term == "Confidence" & Model %in% c("Landscape vs\nemissions\n(2nd order)") ~
-        "Resondents confident in their\nprior beliefs expect others to\nprioritize landscape protection",
+        "Respondents confident in their\nprior beliefs expect others to\nprioritize landscape protection",
       # Confidence
       term == "Salience: Climate Change" & Model %in% c("Biodiversity vs\nemissions\n(1st order)")~
         "Respondents who think climate\nchange is an important issue,\nprioritize emission reductions",
@@ -323,7 +323,7 @@ label_df <- df_forest %>%
   mutate(xpos = 0.23)  # adjust horizontal position
 
 # Plot
-fig3 <- ggplot(df_forest, aes(x = estimate, y = Model, color = Model)) +
+fig4 <- ggplot(df_forest, aes(x = estimate, y = Model, color = Model)) +
   geom_point(position = position_dodge(width = 0.6), size = 2.5) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high),
                  position = position_dodge(width = 0.6), height = 0.2) +
@@ -342,8 +342,8 @@ fig3 <- ggplot(df_forest, aes(x = estimate, y = Model, color = Model)) +
     axis.text.y = element_text(size = 10),
     axis.ticks.y = element_line()
   )
-fig3
-ggsave(fig3, file = "Plots/fig3.pdf", width = 11, height = 11)
+fig4
+ggsave(fig4, file = "Plots/fig4.pdf", width = 11, height = 11)
 
 ################################################################################
 # II.a) social influence: treatment-control group comparison
@@ -385,7 +385,7 @@ df_forest <- purrr::map_dfr(mods, ~ {
 
 
 # Forest plot
-fig4a <- ggplot(df_forest, aes(x = term_label, y = estimate, group = Model, shape = term_label), col = "black") +
+fig6a <- ggplot(df_forest, aes(x = term_label, y = estimate, group = Model, shape = term_label), col = "black") +
   geom_point(size = 3, position = position_dodge(width = 0.6)) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), 
                 width = 0.2, position = position_dodge(width = 0.6)) +
@@ -398,7 +398,7 @@ fig4a <- ggplot(df_forest, aes(x = term_label, y = estimate, group = Model, shap
   theme_SM() +
   theme(legend.position = "none")
 
-fig4a
+fig6a
 
 # ################################################################################
 # # II.b) social influence: (true value - prior 2nd order belief) x treatment group
@@ -687,7 +687,7 @@ df_forest <- purrr::map_dfr(mods, ~ {
 
 
 # Forest plot
-fig4b <- ggplot(df_forest, aes(x = term_label, y = estimate, group = term_label, col = rev(term_label), shape = term_label)) +
+fig6b <- ggplot(df_forest, aes(x = term_label, y = estimate, group = term_label, col = rev(term_label), shape = term_label)) +
   geom_point(size = 3, position = position_dodge(width = 0.6)) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), 
                 width = 0.2, position = position_dodge(width = 0.6)) +
@@ -702,9 +702,9 @@ fig4b <- ggplot(df_forest, aes(x = term_label, y = estimate, group = term_label,
   theme_SM() +
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 45, hjust = 1))
-fig4b
-fig4 <- ggarrange(fig4a, fig4b, labels = "auto", align = "hv", widths = c(1,1.5))
-ggsave(fig4,  file = "Plots/fig4.pdf", width = 10, height = 5)
+fig6b
+fig6 <- ggarrange(fig6a, fig6b, labels = "auto", align = "hv", widths = c(1,1.5))
+ggsave(fig6,  file = "Plots/fig6.pdf", width = 10, height = 5)
 
 ################################################################################
 # III.a) acceptance: treatment-control group comparison
@@ -1240,152 +1240,6 @@ texreg::texreg(
 
 
 
-###########
-# Fig 3b approach 2
-###########
-
-# Function to extract both means and slopes
-extract_emm <- function(model, gap_var) {
-  form <- as.formula(paste("~ treatment_group |", gap_var))
-  
-  # Predicted means at a range of gap values
-  em_gap <- emmeans(model,
-                    form,
-                    at = setNames(list(seq(-4, 4, 1)), gap_var)) %>%
-    tidy(conf.int = TRUE) %>%
-    rename(gap_value = !!sym(gap_var)) %>%  # standardize column name
-    mutate(type = "Predicted means",
-           gap_var = gap_var)
-  
-  # Simple slopes of gap within treatment
-  tr_gap <- emtrends(model, ~ treatment_group, var = gap_var) %>%
-    tidy(conf.int = TRUE) %>%
-    mutate(type = "Simple slopes",
-           gap_var = gap_var)
-  
-  bind_rows(em_gap, tr_gap)
-}
-
-
-# List of models
-mods <- list(
-  "Alpine PV" = lm_alpinePV_8,
-  "Wind" = lm_wind_8,
-  "New nuclear" = lm_newnucs_8,
-  "Prolong nuclear" = lm_prolongnucs_8
-)
-
-# Both gap variables
-gap_vars <- c("gap_to_true_value_bioemi", "gap_to_true_value_landemi")
-
-# Apply: all gaps × all models
-df_forest <- purrr::map_dfr(mods, function(m) {
-  map_dfr(gap_vars, ~ extract_emm(m, .x))
-}, .id = "Model") %>% 
-  mutate(gap_var = ifelse(gap_var == "gap_to_true_value_bioemi",
-                          "Biodiversity conservation\nvs. emission reduction",
-                          "Landscape protection\nvs. emission reduction")) %>% 
-  mutate(Model = factor(Model, levels = c("Alpine PV", "Wind", "New nuclear", "Prolong nuclear")))
-
-# Check coverage
-table(df_forest$Model, df_forest$gap_var)
-
-p_vals <- purrr::map_dfr(mods, tidy, .id = "Model") %>% 
-  filter(grepl(":", term)) %>% 
-  mutate(gap_var = ifelse(grepl("bioemi", term),
-                          "Biodiversity conservation\nvs. emission reduction",
-                          "Landscape protection\nvs. emission reduction")) %>%
-  group_by(Model, gap_var) %>%
-  summarise(p.value = min(p.value), .groups = "drop") %>%
-  mutate(label = paste0("P-value (interaction):\n", signif(p.value, 3)))
-
-
-# Example: label above the top of blue treatment line
-label_arrow_df <- df_forest %>%
-  filter(type == "Predicted means", treatment_group == "treatment") %>%  
-  group_by(Model, gap_var) %>%
-  arrange(gap_value) %>% 
-  slice(4) %>% 
-  summarise(
-    x_arrow = gap_value,      # where arrow points on x-axis
-    y_arrow = estimate,       # point to highest value of blue line
-    .groups = "drop"
-  ) %>% 
-  left_join(p_vals, by = c("Model", "gap_var")) %>% 
-  mutate(Model = factor(Model, levels = c("Alpine PV", "Wind", "New nuclear", "Prolong nuclear")))
-
-# corner_labels <- data.frame(
-#   x = c(4, -4, -4, 4),     # push into corners of plot range
-#   y = c(3.2, 3.2, -2.3, -2.3),
-#   hjust = c(1, 0, 0, 1),           # align text nicely inside plot
-#   vjust = c(1, 1, 0, 0),
-#   label = c(
-#     "Respondent underestimated others' preference\nfor emission reductions,\nand self prefers emission reductions",
-#     "Respondent overestimated others' preference\nfor emission reductions,\nand self prefers emission reductions",
-#     "Respondent overestimated others' preference\nfor emission reductions,\nand self prefers biodiversity/land",
-#     "Respondent underestimated others' preference\nfor emission reductions,\nand self prefers biodiversity/land"
-#   )
-# )
-
-
-# Line plot with ribbons for CIs
-fig3b_option_2 <- ggplot(df_forest %>% 
-                           filter(type != "Simple slopes"), 
-                         aes(x = as.numeric(gap_value), 
-                             y = estimate,
-                             color = treatment_group,
-                             fill = treatment_group,
-                             group = treatment_group)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2, color = NA) +
-  geom_hline(yintercept = 0, lty = 2, col = "grey") +
-  geom_vline(xintercept = 0, lty = 2, col = "grey") +
-  # Curved arrow pointing to the line
-  # Label with rounded edges + arrow
-  geom_label_repel(data = label_arrow_df,
-                   aes(x = x_arrow, y = y_arrow, label = label),   # adjust x/y as needed
-                   inherit.aes = FALSE,
-                   label.r = unit(0.2, "lines"),       # rounded corners
-                   label.size = 0.3,                   # box border thickness
-                   arrow = arrow(length = unit(0.02, "npc")),  # arrow on segment
-                   segment.curvature = 0.3,            # curve the arrow
-                   segment.angle = 20,                 # tweak curvature
-                   segment.ncp = 3,                    # smoothness
-                   nudge_x = 1, 
-                   nudge_y = 2,
-                   segment.color = "black",
-                   size = 3) +
-  
-  # # Quadrant labels
-  # geom_text(data = corner_labels,
-  #           aes(x = x, y = y, label = label, hjust = hjust, vjust = vjust),
-  #           inherit.aes = FALSE,
-  #           size = 2, color = "black") +
-  scale_color_npg() +
-  scale_fill_npg() +
-  # ylim(-2.5,3.5) +
-  facet_grid(gap_var~Model, scales = "free_y") +
-  labs(x = "Perception gap\n(True value of what others believe - expectation prior to the experiment)",
-       y = "Acceptance",
-       color = "Experimental group",
-       fill = "Experimental group",
-       title = "Social influence:\nDepending on the perception gap",) + 
-  theme_SM() +
-  theme(strip.text.x.left = element_text(angle = 0),
-        # strip.placement = "outside",
-        legend.position = c(.7,.4),
-        legend.text = element_text(size = 7),
-        legend.key.size = unit(.4, "cm"),
-        legend.margin = margin(rep(2, 4)),
-        legend.title = element_blank(),
-        legend.justification = c(1, 0),
-        legend.background = element_rect(fill="white", 
-                                         size=.3, linetype="solid", 
-                                         colour ="grey"))
-fig3b_option_2
-ggsave(fig3b_option_2, file = "Plots/fig3b_option_2.pdf", width =10, height = 6)
-
-
 ################################################################################
 # V. Interaction effects treatement direction: left-right and trust 
 ################################################################################
@@ -1584,7 +1438,7 @@ df_forest <- df_forest %>%
          Model = factor(Model, levels = names(mods)))
 
 # Plot: horizontal forest with one facet per model
-p_explaining_acceptance <- ggplot(df_forest, aes(x = estimate, y = term_label)) +
+fig7 <- ggplot(df_forest, aes(x = estimate, y = term_label)) +
   geom_point(size = 3) +
   geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.2) +
   facet_wrap(~ Model, ncol = 2, scales = "free_y") +
@@ -1592,9 +1446,6 @@ p_explaining_acceptance <- ggplot(df_forest, aes(x = estimate, y = term_label)) 
   labs(x = "OLS point estimate (95% CI)", y = NULL, title = "") +
   theme_SM() +
   theme(strip.text = element_text(face = "bold"))
-p_explaining_acceptance
-ggsave(p_explaining_acceptance, filename = "Plots/fig6.pdf", width = 10, height = 7)
-
-
-
+fig7
+ggsave(fig7, filename = "Plots/fig7.pdf", width = 10, height = 7)
 

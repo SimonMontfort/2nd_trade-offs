@@ -131,6 +131,8 @@ p_desc <- dat_clean_desc %>%
                "coping_on_income"= "Coping on income",
                "confidence"         = "Confidence",
                "climate_salience" = "Salience: Climate Change",
+               "complementarity_bioemi" = "Synergy biodiversity\nconservation +\nemission reductions",
+               "complementarity_landemi" = "Synergy landscape\nprotection +\nemission reductions",
 
                "attention_check_yes" = "Attention check (not failed)",
                "prior_bioemi"          = "1st-order prior\nbiodiversity vs. emissions",
@@ -306,7 +308,7 @@ pre_and_treat_dist <- bind_cols(sure_treatment,
 dat_clean
 
 
-fig2a <- pre_and_treat_dist %>% 
+fig3a <- pre_and_treat_dist %>% 
   select(slider_value = treatment_bioemi_2nd_value, 
          treatment_bioemi_2nd_n, 
          treatment_landemi_2nd_n, 
@@ -360,7 +362,7 @@ fig2a <- pre_and_treat_dist %>%
   facet_wrap(~outcome, scales = "free_x") +
   scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.1))) +
   scale_fill_brewer(palette = "Pastel1") +
-  labs(x = "", y = "Percentage", fill = "Group", title = "Expecations about others' beliefs and true population preferences") + 
+  labs(x = "", y = "Percentage", fill = "Group", title = "Expectations about others' beliefs and true population preferences") + 
   theme_SM() +
   theme(legend.position = c(.25,.75),
         legend.margin = margin(rep(2, 4)),
@@ -370,9 +372,9 @@ fig2a <- pre_and_treat_dist %>%
                                          size=.3, linetype="solid", 
                                          colour ="grey"),
         axis.text.x = element_text(angle = 0, hjust = .5))
-fig2a
+fig3a
 
-fig2b <- dat_clean %>% 
+fig3b <- dat_clean %>% 
   select(complementarity_bioemi, complementarity_landemi) %>% 
   mutate_all(.funs = function(x){case_when(x == 0 ~ "Neither nor",
                                            x > 0 ~ "Synergy",
@@ -407,7 +409,7 @@ fig2b <- dat_clean %>%
                                          size=.3, linetype="solid", 
                                          colour ="grey"), 
         axis.text.x = element_text(angle = 0, hjust = .5))
-fig2b
+fig3b
 
-fig2 <- ggarrange(fig2a, fig2b, labels = "auto", ncol = 1)
-ggsave(fig2, file = "Plots/fig2.pdf", width = 10, height = 8)
+fig3 <- ggarrange(fig3a, fig3b, labels = "auto", ncol = 1)
+ggsave(fig3, file = "Plots/fig3.pdf", width = 10, height = 8)
