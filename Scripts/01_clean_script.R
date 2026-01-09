@@ -359,9 +359,8 @@ vars_of_interest <- c(
   "gap_to_true_value_bioemi", "gap_to_true_value_landemi",
   "treatment_positive_bioemi_and_landemi",
   "confidence", "coping_on_income",
-  "perceived_benefit",
   "acceptance_alpinePV", "acceptance_wind", "acceptance_newnucs", "acceptance_prolongnucs",
-  "trust_in_sci", "left_right", "gender_binary", "education_group", "education_numeric", "urban_rural", "urban_rural_numeric", "urban_rural_binary", "income", "age",
+  "trust_in_sci", "left_right", "gender_binary", "education_numeric", "urban_rural_numeric", "urban_rural_binary", "age",
   "climate_salience",
   "speeder", "speeder_treatment_bioemi", "speeder_treatment_landemi", 
   "attention_bioemi_yes", "attention_landemi_yes", "attention_check_yes"
